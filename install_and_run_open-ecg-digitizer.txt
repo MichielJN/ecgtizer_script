@@ -1,0 +1,24 @@
+# Go to the folder where you want to install open-ecg-digitizer in powershell and run this script to install it.
+winget install -e --id Python.Python.3.12 -h 0
+winget install -e --id Git.Git            -h 0
+winget install -e --id Git.GitLFS         -h 0
+
+$pythonPath = "$env:LocalAppData\Programs\Python\Python312"
+$gitPath    = "${env:ProgramFiles}\Git\cmd"
+$env:Path   = "$pythonPath;$gitPath;$env:Path"
+
+git clone https://github.com/Ahus-AIM/Open-ECG-Digitizer.git
+Set-Location Open-ECG-Digitizer
+git lfs install
+git lfs pull
+
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+
+# To run it open src/config/inference_wrapper_george-moody-2024.yml with notepad and change the input and output path to folders where you want the input and output to be located
+
+# Go to the folder where open-ecg-digitzer is located in powershell and run this script in powershell to run it
+. .\.venv\Scripts\Activate.ps1
+python -m src.digitize --config .\src\config\inference_wrapper_george-moody-2024.yml
