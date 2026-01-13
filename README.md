@@ -1,9 +1,6 @@
 # Run this in powershell in the folder that the script is located to install everything necessary for this script to run
 # Open this in code (left corner)
 
-# setup_all.ps1
-# Eén enkel script (kladblok-stijl): dwingt Python-versie af, maakt .venv, installeert deps + ECGtizer + Poppler,
-# zet POPLER_BIN/PATH, en toont zéker de Python-versie der venv.
 
 [CmdletBinding()]
 param(
