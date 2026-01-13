@@ -7,24 +7,17 @@
 
 [CmdletBinding()]
 param(
-  # Vereischte Python minor-versie (pas dit aan naar uw nood, bv. 3.10 of 3.11)
   [string]$RequiredPython = "3.10",
 
-  # Indien gezet: installeert Python via winget indien 'py -$RequiredPython' ontbreekt
   [switch]$AutoInstallPython,
 
-  # Indien gezet: schrijft POPLER_BIN en PATH ook naar User env (blijvend). Anders alleen in deze sessie.
   [switch]$PersistEnv,
 
-  # Poppler release (Windows build)
   [string]$PopplerVersion = "24.08.0-0"
 )
 
 $ErrorActionPreference = "Stop"
 
-# ----------------------------
-# 0) Basis paden
-# ----------------------------
 $Root = $PSScriptRoot
 if (-not $Root) { $Root = (Get-Location).Path }
 
@@ -32,9 +25,6 @@ Write-Host "Werkmap (script-dir): $Root"
 Write-Host "Vereischte Python:    $RequiredPython"
 Write-Host "Poppler versie:       $PopplerVersion"
 
-# ----------------------------
-# 1) Helpers
-# ----------------------------
 function Test-PyVersion([string]$ver) {
   if (-not (Get-Command py -ErrorAction SilentlyContinue)) { return $false }
   try {
@@ -88,18 +78,11 @@ function Find-PopplerBin([string]$base) {
   return $null
 }
 
-# ----------------------------
-# 2) Python verzekeren (juiste versie)
-# ----------------------------
 Ensure-Python -ver $RequiredPython -autoInstall:$AutoInstallPython
 Write-Host "Python OK via launcher: $(& py "-$RequiredPython" -c 'import sys; print(sys.version)')"
 
-# ----------------------------
-# 3) venv maken/activeren
-# ----------------------------
 $VenvDir = Join-Path $Root ".venv"
 
-# Indien venv reeds bestaat, doch met verkeerde Python, herbouw haar
 if (Test-Path $VenvDir) {
   $ExistingVenvPy = Join-Path $VenvDir "Scripts\python.exe"
   if (Test-Path $ExistingVenvPy) {
@@ -122,18 +105,11 @@ if (-not (Test-Path $Activate)) { throw "Kan venv-activatie niet vinden: $Activa
 Write-Host "Activeer venv..."
 . $Activate
 
-# Vaste verwijzing naar venv-python (zekerheid)
 $VenvPy = Join-Path $VenvDir "Scripts\python.exe"
 if (-not (Test-Path $VenvPy)) { throw "Venv-python niet gevonden: $VenvPy" }
 
-# ----------------------------
-# 4) pip tools updaten
-# ----------------------------
 & $VenvPy -m pip install --upgrade pip setuptools wheel
 
-# ----------------------------
-# 5) Python packages installeren (pinnen naar uwe werkende set)
-# ----------------------------
 $Pkgs = @(
   "numpy==1.24.4",
   "pandas==2.0.3",
@@ -152,18 +128,13 @@ $Pkgs = @(
 Write-Host "Installeer Python packages..."
 & $VenvPy -m pip install $Pkgs
 
-# Torch CPU (pin)
 Write-Host "Installeer torch (CPU) 2.9.1+cpu..."
 & $VenvPy -m pip install --index-url "https://download.pytorch.org/whl/cpu" "torch==2.9.1+cpu" -U
 
-# ECGtizer (GitHub zip)
 $ECGtizerZip = "https://github.com/UMMISCO/ecgtizer/archive/refs/heads/master.zip"
 Write-Host "Installeer ECGtizer van: $ECGtizerZip"
 & $VenvPy -m pip install $ECGtizerZip
 
-# ----------------------------
-# 6) Poppler (Windows) downloaden & uitpakken naast dit script
-# ----------------------------
 $PopplerUrl = "https://github.com/oschwartz10612/poppler-windows/releases/download/v$PopplerVersion/Release-$PopplerVersion.zip"
 $PopplerZipPath = Join-Path $Root "Release-$PopplerVersion.zip"
 $PopplerInstallRoot = Join-Path $Root "poppler\Release-$PopplerVersion"
@@ -189,9 +160,6 @@ if (-not $PopplerBin) {
 
 Write-Host "Poppler bin gevonden: $PopplerBin"
 
-# ----------------------------
-# 7) POPLER_BIN en PATH zetten (sessie; optioneel User)
-# ----------------------------
 $env:POPLER_BIN = $PopplerBin
 if ($env:Path -notlike "*$PopplerBin*") { $env:Path = "$env:Path;$PopplerBin" }
 
@@ -202,9 +170,6 @@ if ($PersistEnv) {
   Write-Host "Heropen PowerShell opdat User PATH overal geldt."
 }
 
-# ----------------------------
-# 8) Zelftest + venv Python diagnose (zeker uit de venv)
-# ----------------------------
 Write-Host ""
 Write-Host "=== Zelftest ==="
 Write-Host "Test poppler (pdftoppm -h)..."
